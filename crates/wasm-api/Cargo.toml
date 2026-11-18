@@ -1,0 +1,22 @@
+[package]
+name = "wasm-api"
+version.workspace = true
+edition.workspace = true
+
+# VSCode 插件 / 浏览器复用的 wasm 绑定层（设计方案：核心 crates 零 UI 依赖 → 编 wasm 复用）。
+# 单入口 analyze()：一次调用返回设计器全部数据（JSON），webview 侧零解析负担。
+[lib]
+crate-type = ["cdylib", "rlib"] # cdylib 给 wasm；rlib 让 native 测试可用
+
+[dependencies]
+regex-ir = { path = "../regex-ir" }
+regex-parser = { path = "../regex-parser" }
+regex-plain = { path = "../regex-plain" }
+regex-diagram = { path = "../regex-diagram" }
+regex-exec = { path = "../regex-exec" }
+regex-export = { path = "../regex-export" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"

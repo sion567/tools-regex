@@ -1,0 +1,10 @@
+[package]
+name = "regex-ir"
+version.workspace = true
+edition.workspace = true
+
+# 工程纪律（设计方案 6.4）：本 crate 零依赖，禁止引入任何引擎/UI 依赖。
+# lint_deps.sh 会强制检查 [dependencies] 不存在。
+# 注意：不得加 dev-dependencies（会与 parser 形成 path 循环，把本 crate 复制成两个版本）；
+# used_features 的端到端测试放在 regex-parser 的测试里。
+[dependencies]

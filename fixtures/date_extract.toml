@@ -1,0 +1,12 @@
+# 设计方案第十二章·示例 1｜日期提取（M1 验收 fixture）
+# 区间为字节偏移；样本刻意全 ASCII，保证人工可核对
+[meta]
+name = "示例 1｜日期提取（三段式联动）"
+
+[[cases]]
+name = "命中横线日期；斜线日期不命中"
+pattern = '\b(\d{4})-(\d{2})-(\d{2})\b'
+sample = 'Contract signed on 2024-08-15, amended 2025-01-01 (see 2025/02/03 doc).'
+expect_engine = "regex"
+expected_matches = [[19, 29], [39, 49]]
+expected_groups = [[19, 23], [24, 26], [27, 29]]

@@ -1,0 +1,30 @@
+{
+  "name": "tools-regex-designer",
+  "displayName": "tools-regex 正则设计器",
+  "description": "铁路图 + 人话层 + 回溯风险检测 + 六方言代码导出——核心由 Rust wasm 驱动（tools-regex）",
+  "version": "0.1.0",
+  "publisher": "tools-regex",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Programming Languages", "Education"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "toolsRegex.openDesigner",
+        "title": "tools-regex：打开正则设计器",
+        "category": "tools-regex"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.4.0"
+  }
+}

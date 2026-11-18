@@ -1,0 +1,8 @@
+[package]
+name = "regex-parser"
+version.workspace = true
+edition.workspace = true
+
+# 工程纪律：只允许依赖 regex-ir
+[dependencies]
+regex-ir = { path = "../regex-ir" }

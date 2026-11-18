@@ -1,0 +1,12 @@
+[package]
+name = "regex-diagram"
+version.workspace = true
+edition.workspace = true
+
+# 工程纪律：只允许依赖 regex-ir；禁止任何 UI 依赖（egui/eframe）
+[dependencies]
+regex-ir = { path = "../regex-ir" }
+
+# 仅测试用（端到端断言：正则 → IR → 布局/SVG）
+[dev-dependencies]
+regex-parser = { path = "../regex-parser" }

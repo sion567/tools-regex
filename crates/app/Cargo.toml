@@ -1,0 +1,33 @@
+[package]
+name = "app"
+version.workspace = true
+edition.workspace = true
+
+# wasm 浏览器版（设计方案 9.4 探索项）：lib 为 cdylib（#[wasm_bindgen(start)] 入口），
+# 原生入口在 src/main.rs——两形态共享同一套 UI（lib 内）
+[lib]
+name = "app"
+path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]
+
+[[bin]]
+# bin 与 lib 同名会让 trunk 无法区分 wasm 产物（lib 才是 cdylib 入口）
+name = "tools-regex"
+path = "src/main.rs"
+
+# 工程纪律：全仓唯一允许依赖 egui 的地方（eframe 壳）
+[dependencies]
+eframe = "0.27"
+egui = "0.27" # 与 eframe 同版本锁步（egui:: 路径直接引用）
+regex-ir = { path = "../regex-ir" }
+regex-parser = { path = "../regex-parser" }
+regex-diagram = { path = "../regex-diagram" }
+regex-exec = { path = "../regex-exec" }
+regex-export = { path = "../regex-export" }
+regex-plain = { path = "../regex-plain" }
+
+# 仅 wasm 浏览器形态需要（设计方案 9.4 探索项）
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = ["console"] }

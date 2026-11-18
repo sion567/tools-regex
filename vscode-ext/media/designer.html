@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>tools-regex 设计器</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 12px 16px; font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 13px; color: #d8dce2; background: #1e1e1e; line-height: 1.5;
+  }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  h2 { font-size: 13px; color: #9cdcfe; margin: 14px 0 6px; border-top: 1px solid #333; padding-top: 10px; }
+  .muted { color: #8b949e; }
+  input[type=text], textarea {
+    width: 100%; background: #252526; color: #d8dce2; border: 1px solid #3c3c3c;
+    border-radius: 4px; padding: 6px 8px; font-family: Consolas, monospace; font-size: 13px;
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  .row { display: flex; gap: 8px; margin: 6px 0; align-items: center; }
+  .chip {
+    display: inline-block; margin: 1px 2px; padding: 2px 6px; border-radius: 4px;
+    font-family: Consolas, monospace; font-size: 12px; background: #264f78; cursor: default;
+  }
+  .chip.bad { background: #5a1d1d; color: #f48fb1; }
+  .badge { padding: 1px 8px; border-radius: 10px; font-size: 12px; }
+  .ok  { background: #1e4620; color: #7ee787; }
+  .warn{ background: #4d3800; color: #ffc107; }
+  .bad { background: #5a1d1d; color: #ff8a80; }
+  .err { color: #ff8a80; font-family: Consolas, monospace; white-space: pre-wrap; }
+  #diagram { overflow: auto; background: #fcfcfd; border-radius: 6px; padding: 4px; }
+  #diagram svg { display: block; max-width: none; }
+  .seg { padding: 2px 0; border-bottom: 1px dashed #2d2d2d; }
+  .seg b { font-family: Consolas, monospace; color: #61c8ff; font-weight: normal; }
+  .matchline { font-family: Consolas, monospace; white-space: pre-wrap; font-size: 12.5px; }
+  .hit { background: #ffd579; color: #1e1e1e; border-radius: 2px; }
+  .codecard { margin: 4px 0; border: 1px solid #333; border-radius: 6px; overflow: hidden; }
+  .codecard > summary { padding: 6px 10px; cursor: pointer; background: #252526; }
+  .codecard > pre { margin: 0; padding: 8px 10px; background: #141619; overflow: auto;
+    font-family: Consolas, monospace; font-size: 12.5px; white-space: pre-wrap; }
+  details.danger { border: 1px solid #7f1d1d; border-radius: 6px; padding: 8px 10px; margin: 8px 0; background: #2a1212; }
+  .warnbox { border: 1px solid #5a4a00; border-radius: 6px; padding: 8px 10px; margin: 8px 0; background: #2a2412; color: #ffc107; }
+</style>
+</head>
+<body>
+  <h1>tools-regex 设计器 <span class="muted" id="wasmState">（加载 wasm…）</span></h1>
+  <div class="muted">VSCode 插件 · 核心 crates 编 wasm 复用——与桌面版同一套解析器/人话层/布局/引擎矩阵/代码导出。</div>
+
+  <h2>正则</h2>
+  <input type="text" id="pattern" placeholder="输入正则，如 \b(\d{4})-(\d{2})-(\d{2})\b" />
+  <div id="error" class="err"></div>
+  <div id="link" class="matchline"></div>
+
+  <h2>样本文本</h2>
+  <textarea id="sample" placeholder="贴一段要测试的文本"></textarea>
+  <div class="row">
+    <span id="engineBadge" class="badge"></span>
+    <span id="dangerBadge" class="badge"></span>
+  </div>
+  <div id="matches" class="matchline"></div>
+
+  <h2>铁路图</h2>
+  <div id="diagram"></div>
+
+  <h2>人话层 <span class="muted" style="font-size:12px">（悬停分段 ↔ 顶部正则联动）</span></h2>
+  <div id="summary" class="muted"></div>
+  <div id="segments"></div>
+
+  <h2>代码导出 <span class="muted" style="font-size:12px">（拒绝式门禁：目标方言不支持时给理由）</span></h2>
+  <div id="code"></div>
+
+  <script>
+    // VSCode webview 下由 extension.ts 注入真实 webview URI；浏览器直开时用相对路径
+    window.__URIS__ = window.__URIS__ || { appJs: "./wasm_api.js", wasm: "./wasm_api_bg.wasm" };
+  </script>
+  <script type="module">
+    const state = { pattern: "", sample: "", patternMap: [0], sampleMap: [0] };
+
+    function debounce(fn, ms) {
+      let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+    }
+    function esc(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    // wasm 侧 span/命中区间都是 UTF-8 字节偏移，而 String.slice 用 UTF-16 码元下标——
+    // 多字节字符（中文）直接切片会错位，必须过这张"字节偏移 → JS 下标"映射表。
+    function buildByteMap(src) {
+      const map = [];
+      let bi = 0;
+      for (let i = 0; i < src.length; i++) {
+        map[bi] = i;
+        const cp = src.codePointAt(i);
+        bi += cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4;
+        if (cp > 0xffff) i++; // 代理对占两个 UTF-16 码元
+      }
+      map[bi] = src.length;
+      return map;
+    }
+    function byteToIdx(map, b) {
+      return map[b] !== undefined ? map[b] : map[map.length - 1];
+    }
+    // 命中高亮行（字节区间经映射表转 JS 下标再切片）
+    function renderMatches(src, ranges) {
+      const el = document.getElementById("matches");
+      if (!ranges.length) { el.textContent = src ? "（无命中）" : ""; return; }
+      const map = state.sampleMap;
+      let html = "", curJ = 0, shown = 0;
+      for (const [s, e] of ranges) {
+        if (shown++ >= 50) { html += "\n…（仅显示前 50 处）"; break; }
+        const js = byteToIdx(map, s), je = byteToIdx(map, e);
+        html += esc(src.slice(curJ, js)) + '<span class="hit">' + esc(src.slice(js, je)) + "</span>";
+        curJ = je;
+      }
+      if (curJ < src.length && shown <= 50) html += esc(src.slice(curJ));
+      el.innerHTML = html;
+    }
+
+    function render(d) {
+      // 错误/引擎/风险
+      document.getElementById("error").textContent = d.error || "";
+      const eb = document.getElementById("engineBadge");
+      if (d.compile_error) { eb.className = "badge bad"; eb.textContent = "✗ " + d.compile_error; }
+      else if (d.engine) { eb.className = "badge " + (d.engine.approx ? "warn" : "ok"); eb.textContent = "引擎 " + d.engine.label + (d.engine.approx ? "（近似）" : "（真身）") + " · 命中 " + d.matches.length; }
+      else { eb.className = "badge"; eb.textContent = ""; }
+      const db = document.getElementById("dangerBadge");
+      if (d.danger.length) { db.className = "badge bad"; db.textContent = "⚠ 回溯风险 " + d.danger.length + " 处"; }
+      else { db.className = "badge ok"; db.textContent = "✓ 无回溯风险"; }
+
+      renderMatches(state.sample, d.matches);
+
+      // 铁路图
+      document.getElementById("diagram").innerHTML = d.svg || "";
+
+      // 人话层
+      document.getElementById("summary").textContent = d.summary ? "整体流程：" + d.summary : "";
+      const segs = document.getElementById("segments");
+      segs.innerHTML = "";
+      for (const seg of d.segments) {
+        const row = document.createElement("div");
+        row.className = "seg";
+        const frag = state.pattern.slice(byteToIdx(state.patternMap, seg.s), byteToIdx(state.patternMap, seg.e));
+        row.innerHTML = (frag ? '<b>「' + esc(frag) + '」</b> ' : "") + esc(seg.t);
+        row.onmouseenter = () => window.__setLink && window.__setLink(seg.s, seg.e);
+        row.onmouseleave = () => window.__setLink && window.__setLink(null);
+        segs.appendChild(row);
+      }
+
+      // 代码导出
+      const code = document.getElementById("code");
+      code.innerHTML = "";
+      for (const [lang, text] of Object.entries(d.code)) {
+        const det = document.createElement("details");
+        det.className = "codecard";
+        const refused = text.startsWith("!");
+        det.innerHTML = "<summary>" + esc(lang) + " <span class='badge " + (refused ? "bad" : "ok") + "'>" + (refused ? "✗ 拒绝" : "✓ 可导出") + "</span></summary>";
+        const pre = document.createElement("pre");
+        pre.textContent = refused ? text.slice(1) : text;
+        det.appendChild(pre);
+        code.appendChild(det);
+      }
+
+      // 正则输入框联动（人话悬停 → 输入框下方高亮行）
+      const link = document.getElementById("link");
+      window.__setLink = (s, e) => {
+        if (s == null) { link.innerHTML = ""; return; }
+        const src = state.pattern;
+        const map = state.patternMap;
+        link.innerHTML =
+          esc(src.slice(0, byteToIdx(map, s))) +
+          '<span class="hit">' + esc(src.slice(byteToIdx(map, s), byteToIdx(map, e))) + "</span>" +
+          esc(src.slice(byteToIdx(map, e)));
+      };
+    }
+
+    let analyzeFn = null; // 模块加载后绑定（--target web 的 glue 是 ES 模块导出）
+
+    function refresh() {
+      state.pattern = document.getElementById("pattern").value;
+      state.sample = document.getElementById("sample").value;
+      state.patternMap = buildByteMap(state.pattern);
+      state.sampleMap = buildByteMap(state.sample);
+      const d = JSON.parse(analyzeFn(state.pattern, state.sample));
+      render(d);
+    }
+
+    (async () => {
+      const mod = await import(window.__URIS__.appJs);
+      analyzeFn = mod.analyze;
+      await mod.default(window.__URIS__.wasm); // glue 默认导出 = __wbg_init
+      document.getElementById("wasmState").textContent = "（wasm 就绪 ✓）";
+
+      const p = document.getElementById("pattern");
+      const s = document.getElementById("sample");
+      p.value = state.pattern = window.__INIT_PATTERN__ || "\\b(\\d{4})-(\\d{2})-(\\d{2})\\b";
+      s.value = state.sample = "Contract signed on 2024-08-15, amended 2025-01-01 (see 2025/02/03 doc).\nHe said \"hello\", then \"bye\".\nthe the cat cat dog";
+      p.addEventListener("input", debounce(refresh, 250));
+      s.addEventListener("input", debounce(refresh, 250));
+      refresh();
+    })().catch((e) => {
+      document.getElementById("wasmState").textContent = "（wasm 加载失败 ✗）";
+      document.getElementById("error").textContent = String(e && (e.message || e));
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="234" height="140" viewBox="0 0 234 140" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+<rect x="0" y="0" width="234" height="140" fill="#fcfcfd"/>
+<path d="M 58.0 70.0 L 74.0 70.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 160.0 70.0 L 160.0 56.0 L 159.6 52.4 L 158.4 49.6 L 156.4 47.6 L 153.6 46.4 L 150.0 46.0 L 84.0 46.0 L 80.4 46.4 L 77.6 47.6 L 75.6 49.6 L 74.4 52.4 L 74.0 56.0 L 74.0 70.0" fill="none" stroke="#868e96" stroke-width="1.6" stroke-dasharray="2 4" stroke-linejoin="round"/>
+<path d="M 160.0 70.0 L 176.0 70.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<rect x="24.0" y="55.0" width="34.0" height="30.0" rx="7" fill="#ffffff" stroke="#495057" stroke-width="1.6"/>
+<text x="41.0" y="70.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">"</text>
+<polygon points="74.0,70.0 67.0,66.5 67.0,73.5" fill="#495057"/>
+<rect x="74.0" y="59.0" width="86.0" height="30.0" rx="7" fill="#e7f1ff" stroke="#495057" stroke-width="1.6"/>
+<text x="117.0" y="74.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">任意字符</text>
+<polygon points="74.0,70.0 67.0,66.5 67.0,73.5" fill="#495057"/>
+<text x="108.5" y="45.0" font-size="11" fill="#6c757d">+?</text>
+<polygon points="176.0,70.0 169.0,66.5 169.0,73.5" fill="#495057"/>
+<rect x="176.0" y="55.0" width="34.0" height="30.0" rx="7" fill="#ffffff" stroke="#495057" stroke-width="1.6"/>
+<text x="193.0" y="70.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">"</text>
+<text x="24.0" y="37.0" font-size="11" fill="#6c757d">«1»</text>
+</svg>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>tools-regex · 浏览器版（探索）</title>
+  </head>
+  <body style="margin:0;padding:0">
+    <!-- egui 画布（lib.rs wasm 入口绑定此 id） -->
+    <canvas id="the_canvas_id" width="1280" height="800" style="width:100vw;height:100vh"></canvas>
+    <!-- trunk 构建 cdylib（data-target-name 选 lib"app"，bin"tools-regex" 是桌面入口）；
+         wasm-opt 禁用：trunk 需从 github 下载 binaryen，离线环境整个构建会失败——探索版不差这点体积 -->
+    <link data-trunk rel="rust" data-wasm-opt="0" data-target-name="app" />
+  </body>
+</html>

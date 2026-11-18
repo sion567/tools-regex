@@ -1,0 +1,20 @@
+# 设计方案第十二章·示例 2｜贪婪 vs 懒惰（一个符号两种结果）
+# 样本：He said "hello", then "bye"  （27 字节，引号位置 8/14/22/26）
+[meta]
+name = "示例 2｜贪婪 vs 懒惰"
+
+[[cases]]
+name = "贪婪：整段一次命中，两个引号全吃"
+pattern = '"(.+)"'
+sample = 'He said "hello", then "bye"'
+expect_engine = "regex"
+expected_matches = [[8, 27]]
+expected_groups = [[9, 26]]
+
+[[cases]]
+name = "懒惰：两段分别命中"
+pattern = '"(.+?)"'
+sample = 'He said "hello", then "bye"'
+expect_engine = "regex"
+expected_matches = [[8, 15], [22, 27]]
+expected_groups = [[9, 14]]

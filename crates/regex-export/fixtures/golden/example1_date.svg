@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="450" height="118" viewBox="0 0 450 118" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+<rect x="0" y="0" width="450" height="118" fill="#fcfcfd"/>
+<path d="M 59.0 59.0 L 75.0 59.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 131.0 59.0 L 147.0 59.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 181.0 59.0 L 197.0 59.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 253.0 59.0 L 269.0 59.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 303.0 59.0 L 319.0 59.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 375.0 59.0 L 391.0 59.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="41.5,44.0 59.0,59.0 41.5,74.0 24.0,59.0" fill="#fff3cd" stroke="#495057" stroke-width="1.6"/>
+<text x="41.5" y="59.0" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#212529">\b</text>
+<polygon points="75.0,59.0 68.0,55.5 68.0,62.5" fill="#495057"/>
+<rect x="75.0" y="37.0" width="56.0" height="30.0" rx="7" fill="#e7f1ff" stroke="#495057" stroke-width="1.6"/>
+<text x="103.0" y="52.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">[\d]</text>
+<text x="90.2" y="82.0" font-size="11" fill="#6c757d">{4}</text>
+<text x="75.0" y="37.0" font-size="11" fill="#6c757d">«1»</text>
+<polygon points="147.0,59.0 140.0,55.5 140.0,62.5" fill="#495057"/>
+<rect x="147.0" y="44.0" width="34.0" height="30.0" rx="7" fill="#ffffff" stroke="#495057" stroke-width="1.6"/>
+<text x="164.0" y="59.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">-</text>
+<polygon points="197.0,59.0 190.0,55.5 190.0,62.5" fill="#495057"/>
+<rect x="197.0" y="37.0" width="56.0" height="30.0" rx="7" fill="#e7f1ff" stroke="#495057" stroke-width="1.6"/>
+<text x="225.0" y="52.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">[\d]</text>
+<text x="212.2" y="82.0" font-size="11" fill="#6c757d">{2}</text>
+<text x="197.0" y="37.0" font-size="11" fill="#6c757d">«2»</text>
+<polygon points="269.0,59.0 262.0,55.5 262.0,62.5" fill="#495057"/>
+<rect x="269.0" y="44.0" width="34.0" height="30.0" rx="7" fill="#ffffff" stroke="#495057" stroke-width="1.6"/>
+<text x="286.0" y="59.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">-</text>
+<polygon points="319.0,59.0 312.0,55.5 312.0,62.5" fill="#495057"/>
+<rect x="319.0" y="37.0" width="56.0" height="30.0" rx="7" fill="#e7f1ff" stroke="#495057" stroke-width="1.6"/>
+<text x="347.0" y="52.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">[\d]</text>
+<text x="334.2" y="82.0" font-size="11" fill="#6c757d">{2}</text>
+<text x="319.0" y="37.0" font-size="11" fill="#6c757d">«3»</text>
+<polygon points="391.0,59.0 384.0,55.5 384.0,62.5" fill="#495057"/>
+<polygon points="408.5,44.0 426.0,59.0 408.5,74.0 391.0,59.0" fill="#fff3cd" stroke="#495057" stroke-width="1.6"/>
+<text x="408.5" y="59.0" text-anchor="middle" dominant-baseline="central" font-size="13" fill="#212529">\b</text>
+</svg>

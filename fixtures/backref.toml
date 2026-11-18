@@ -1,0 +1,12 @@
+# 设计方案第十二章·示例 4｜反向引用（引擎矩阵回退锁定）
+# \1 不被 DFA 家族支持 → 必须落到 fancy-regex（近似引擎）
+[meta]
+name = "示例 4｜反向引用：家族断层"
+
+[[cases]]
+name = "重复词：fancy-regex 近似引擎"
+pattern = '\b(\w+) \1\b'
+sample = 'the the cat cat dog'
+expect_engine = "fancy"
+expected_matches = [[0, 7], [8, 15]]
+expected_groups = [[0, 3]]

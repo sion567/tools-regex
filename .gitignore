@@ -1,0 +1,8 @@
+/target
+dist/
+node_modules/
+*.vsix
+Cargo.lock.bak
+*.svg.tmp
+/m0-railroad.svg
+/m2-diagram.svg

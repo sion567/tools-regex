@@ -1,0 +1,18 @@
+[package]
+name = "regex-exec"
+version.workspace = true
+edition.workspace = true
+
+# 工程纪律：只允许依赖 regex-ir / regex / fancy-regex / memmap2 / rayon（引擎矩阵的家）
+[dependencies]
+regex-ir = { path = "../regex-ir" }
+regex = "1"
+fancy-regex = "0.13"
+memmap2 = "0.9"
+rayon = "1"
+
+# 仅测试用：解析第 12 章示例 fixture（TOML）+ interp/danger 端到端
+[dev-dependencies]
+toml = "0.8"
+serde = { version = "1", features = ["derive"] }
+regex-parser = { path = "../regex-parser" }

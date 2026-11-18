@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="131" height="174" viewBox="0 0 131 174" font-family="Segoe UI, Microsoft YaHei, sans-serif">
+<rect x="0" y="0" width="131" height="174" fill="#fcfcfd"/>
+<path d="M 24.0 87.0 L 46.0 87.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 46.0 39.0 L 46.0 135.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 107.0 39.0 L 107.0 135.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 107.0 87.0 L 107.0 87.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 46.0 39.0 L 48.5 39.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 82.5 39.0 L 107.0 39.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 46.0 87.0 L 46.0 87.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 85.0 87.0 L 107.0 87.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 46.0 135.0 L 48.5 135.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M 82.5 135.0 L 107.0 135.0" fill="none" stroke="#495057" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="48.5,39.0 41.5,35.5 41.5,42.5" fill="#495057"/>
+<rect x="48.5" y="24.0" width="34.0" height="30.0" rx="7" fill="#ffffff" stroke="#495057" stroke-width="1.6"/>
+<text x="65.5" y="39.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">a</text>
+<polygon points="46.0,87.0 39.0,83.5 39.0,90.5" fill="#495057"/>
+<rect x="46.0" y="72.0" width="39.0" height="30.0" rx="7" fill="#ffffff" stroke="#495057" stroke-width="1.6"/>
+<text x="65.5" y="87.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">bb</text>
+<polygon points="48.5,135.0 41.5,131.5 41.5,138.5" fill="#495057"/>
+<rect x="48.5" y="120.0" width="34.0" height="30.0" rx="7" fill="#ffffff" stroke="#495057" stroke-width="1.6"/>
+<text x="65.5" y="135.0" text-anchor="middle" dominant-baseline="central" font-size="14" fill="#212529">c</text>
+</svg>
