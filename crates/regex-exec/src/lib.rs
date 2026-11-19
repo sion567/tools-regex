@@ -47,14 +47,15 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn new(pattern: &str) -> Self {
-        match regex::Regex::new(pattern) {
+        let effective = strip_js_literal(pattern);
+        match regex::Regex::new(&effective) {
             Ok(re) => Self {
                 engine: Some(Engine::RegexCrate),
                 error: None,
                 re_regex: Some(re),
                 re_fancy: None,
             },
-            Err(e1) => match fancy_regex::Regex::new(pattern) {
+            Err(e1) => match fancy_regex::Regex::new(&effective) {
                 Ok(re) => Self {
                     engine: Some(Engine::FancyRegex),
                     error: None,
@@ -97,12 +98,60 @@ impl Scanner {
             Vec::new()
         }
     }
+
+    /// 替换预览用：整段文本替换，模板支持 $1/$name 引用（regex/fancy-regex 同语法）。
+    /// 无命中时原样返回；两引擎都编译失败返回 None。
+    pub fn replace_all_in(&self, text: &str, rep: &str) -> Option<String> {
+        if let Some(re) = &self.re_regex {
+            Some(re.replace_all(text, rep).into_owned())
+        } else if let Some(re) = &self.re_fancy {
+            Some(re.replace_all(text, rep).into_owned())
+        } else {
+            None
+        }
+    }
 }
 
 /// 便捷入口：一次调用拿全部结果（内部走 Scanner）
 pub fn find_all(pattern: &str, text: &str) -> (Option<Engine>, Option<String>, Vec<(usize, usize)>) {
     let sc = Scanner::new(pattern);
     (sc.engine(), sc.error.as_deref().map(str::to_string), sc.find_in(text))
+}
+
+/// JS 风格字面量 `/pattern/flags` 预处理——用户从 JS/Regex101 习惯带来的写法，
+/// 直接当正则编译会把 `/` 和 `/g` 当字面字符（实测 `/([A-Z])\w+/g` 一条都搜不出）。
+///
+/// 规则（保守：只在高度确信是字面量形式时才剥）：
+/// - 以 `/` 开头、最后一个 `/` 之后的 flags 是合法 JS flag 子集（`dgimsuvy`，可空）；
+/// - 映射：`i/m/s` → 内联标志前缀（两引擎都认，语义与 JS 对应）；`g`（全局，本来就
+///   是）/`u`/`d`（Unicode/索引细节，Rust 默认即此行为）忽略；`y`（sticky）无对应
+///   语义，直接拒剥——让编译报错明示，绝不静默改变含义。
+///
+/// 副作用：想匹配字面 `/a/g` 文本请写 `\/a\/g`——与 JS 一致。
+fn strip_js_literal(pattern: &str) -> String {
+    if !pattern.starts_with('/') || pattern.len() < 3 {
+        return pattern.to_string();
+    }
+    let Some(last) = pattern.rfind('/') else { return pattern.to_string() };
+    if last == 0 {
+        return pattern.to_string();
+    }
+    let (inner, flags) = (&pattern[1..last], &pattern[last + 1..]);
+    // flags 白名单校验：防误伤以 / 开头的普通正则（如 /home/user 的 "user" 含非 flag 字母）
+    if flags.len() > 6 || !flags.bytes().all(|b| b"dgimsuvy".contains(&b)) {
+        return pattern.to_string();
+    }
+    if flags.contains('y') {
+        return pattern.to_string(); // sticky 无等价内联标志，宁报错不变形
+    }
+    let mut prefix = String::new();
+    for f in flags.chars() {
+        match f {
+            'i' | 'm' | 's' => prefix.push_str(&format!("(?{f})")),
+            _ => {}
+        }
+    }
+    format!("{prefix}{inner}")
 }
 
 /// 一次命中的完整捕获信息（含编号捕获组；groups[0] 对应整段）
@@ -233,5 +282,46 @@ mod tests {
         let (engine, _, ranges) = find_all(r"\b(\w+) \1\b", "the the cat cat dog");
         assert_eq!(engine, Some(Engine::FancyRegex));
         assert_eq!(ranges, vec![(0, 7), (8, 15)]);
+    }
+
+    #[test]
+    fn js_literal_g_flag() {
+        // 用户实测报障的写法：/…/g 不能把定界符当字面字符
+        let (engine, err, ranges) = find_all("/([A-Z])\\w+/g", "Contract signed on Tuesday");
+        assert!(err.is_none());
+        assert_eq!(engine, Some(Engine::RegexCrate));
+        assert_eq!(ranges, vec![(0, 8), (19, 26)]); // Contract / Tuesday（小写开头不命中）
+    }
+
+    #[test]
+    fn js_literal_flags_map_to_inline() {
+        // i → 大小写不敏感；m → 多行；空 flags 也剥
+        assert_eq!(find_all("/abc/i", "ABC abc").2, vec![(0, 3), (4, 7)]);
+        assert_eq!(find_all("/^b/m", "a\nb").2, vec![(2, 3)]);
+        assert_eq!(find_all("/b+/", "abbb").2, vec![(1, 4)]);
+    }
+
+    #[test]
+    fn js_literal_conservative_reject() {
+        // flags 不在 JS 白名单 → 原样保留：/home/user 当字面路径匹配，绝不静默变形
+        assert_eq!(find_all("/home/user", "see /home/user now").2, vec![(4, 14)]);
+        // sticky(y) 无等价内联语义 → 原样（字面）编译，不硬猜
+        assert_eq!(find_all("/a/y", "/a/y").2, vec![(0, 4)]);
+    }
+
+    #[test]
+    fn replace_all_with_groups() {
+        let sc = Scanner::new(r"(\d{4})-(\d{2})-(\d{2})");
+        assert_eq!(
+            sc.replace_all_in("on 2024-08-15 & 2025-01-01", "$2/$3/$1").unwrap(),
+            "on 08/15/2024 & 01/01/2025"
+        );
+        // 无命中原样返回
+        assert_eq!(sc.replace_all_in("no date", "$1").unwrap(), "no date");
+        // fancy-regex 路径（含环视）
+        let sc2 = Scanner::new(r"\d+(?= ms)");
+        assert_eq!(sc2.replace_all_in("123 ms, 45 ms", "<T>").unwrap(), "<T> ms, <T> ms");
+        // 双引擎失败 → None
+        assert!(Scanner::new("[").replace_all_in("x", "y").is_none());
     }
 }

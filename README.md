@@ -15,19 +15,27 @@ crates/
 ├── regex-diagram/   # IR → 铁路图布局（零 UI 依赖；Shape 携 span；圆角轨道）
 ├── regex-exec/      # 引擎矩阵 + interp（教学解释器 VM）+ danger（回溯检测）+ stream（大文件）
 ├── regex-export/    # SVG 导出 + golden 快照 + codegen（六方言代码导出）
-└── app/             # eframe 壳：工作台 / 大文件扫描 / 闯关教学 / 代码导出 / 三 spike
+└── app/             # eframe 壳：工作台(TEXT/TEXTS) / 反推正则 / 速查表 / 大文件扫描 / 闯关教学 / 代码导出 / spike 下拉
 fixtures/            # 设计方案第 12 章示例的可执行化（示例 1/2/4，TOML）
 ```
 
 ## 快速开始
 
 ```bash
-cargo run -p app                 # 五个功能 Tab + 三 spike
+cargo run -p app                 # 六个功能 Tab + spike 下拉；正则支持 JS 风格 /pattern/flags
 cargo test --workspace           # 95 项测试（fixture + golden + fuzz + VM + 闯关自验证）
 bash scripts/lint_deps.sh        # 依赖纪律
-bash scripts/build_release.sh    # 桌面发布构建（单二进制 target/release/app.exe）
+bash scripts/build_release.sh    # 桌面发布构建（单二进制 target/release/regex.exe）
 bash scripts/build_web.sh        # 浏览器版构建（crates/app/dist/，见下文说明）
 ```
+
+## 日志与崩溃排查
+
+桌面版日志写在** exe 旁边**的 `regex.log`（写不进则退回 `%TEMP%`），并同步镜像 stderr；
+浏览器版走 DevTools console。`app/src/logging.rs` 自带 panic 钩子：应用崩溃时，
+panic 消息、源码位置和 backtrace 会**先落盘再退出**——窗口闪退后去日志文件里看
+`[PANIC]` 段即可定位。打点只发生在事件处（启动/切 Tab/选关/检查/看参考解/下一关），
+egui 按帧渲染，不做按帧打点。
 
 ## M4 能力清单（已完成）
 

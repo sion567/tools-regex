@@ -16,7 +16,7 @@ pub fn install_cjk(ctx: &egui::Context) -> Result<(), String> {
     let mut fonts = egui::FontDefinitions::default();
     fonts
         .font_data
-        .insert("cjk".into(), egui::FontData::from_owned(bytes));
+        .insert("cjk".into(), std::sync::Arc::new(egui::FontData::from_owned(bytes)));
     // 追加到 families 队尾 = 兜底字体：缺字形时才用（不影响 ASCII 主字体）
     fonts
         .families
@@ -29,6 +29,6 @@ pub fn install_cjk(ctx: &egui::Context) -> Result<(), String> {
         .or_default()
         .push("cjk".into());
     ctx.set_fonts(fonts);
-    eprintln!("[fonts] CJK 字体已加载：{path}");
+    crate::logging::info(&format!("[fonts] CJK 字体已加载：{path}"));
     Ok(())
 }

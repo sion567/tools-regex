@@ -14,11 +14,11 @@ use egui::{Color32, FontId, Pos2, TextFormat};
 
 const FG: Color32 = Color32::from_rgb(216, 220, 226);
 const FG_DIM: Color32 = Color32::from_rgb(139, 148, 158);
-/// 命中段背景（非 const fn，内联用）
+/// 命中段背景（实底琥珀；配深字保证对比度，与工作台命中列表一致）
 #[allow(non_snake_case)]
 #[inline(always)]
 fn HIT_BG() -> Color32 {
-    Color32::from_rgba_unmultiplied(255, 213, 79, 110)
+    Color32::from_rgba_unmultiplied(255, 193, 7, 210)
 }
 
 pub struct State {
@@ -65,9 +65,9 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
 
     // ---- 正则输入（语法着色，验证 LayoutJob 路线） ----
     let ctx = ui.ctx().clone();
-    let mut layouter = move |_ui: &egui::Ui, s: &str, _wrap: f32| -> Arc<egui::Galley> {
-        let job = colorize_regex(s);
-        ctx.fonts(|f| f.layout_job(job))
+    let mut layouter = move |_ui: &egui::Ui, s: &dyn egui::TextBuffer, _wrap: f32| -> Arc<egui::Galley> {
+        let job = colorize_regex(s.as_str());
+        ctx.fonts_mut(|f| f.layout_job(job))
     };
     let edit = ui.add(
         egui::TextEdit::singleline(&mut st.regex_src)
@@ -174,7 +174,7 @@ fn apply(st: &mut State, ctx: &egui::Context) {
 
     // 用第一行探一次行高
     let job = line_job(&st.lines[0], &[]);
-    let g = ctx.fonts(|f| f.layout_job(job));
+    let g = ctx.fonts_mut(|f| f.layout_job(job));
     st.row_h = (g.size().y + 4.0).max(16.0);
 }
 
@@ -186,7 +186,7 @@ fn galley_for(st: &mut State, ctx: &egui::Context, i: usize) -> Arc<egui::Galley
         }
     }
     let job = line_job(&st.lines[i], &st.matches_per_line[i]);
-    let g = ctx.fonts(|f| f.layout_job(job));
+    let g = ctx.fonts_mut(|f| f.layout_job(job));
     st.galleys.insert(i, (st.gen, g.clone()));
     g
 }
@@ -200,7 +200,7 @@ fn line_job(line: &str, hits: &[(usize, usize)]) -> egui::text::LayoutJob {
     let fmt_plain = TextFormat { font_id: mono(), color: FG, ..Default::default() };
     let fmt_hit = TextFormat {
         font_id: mono(),
-        color: FG,
+        color: Color32::from_rgb(43, 30, 0),
         background: HIT_BG(),
         ..Default::default()
     };

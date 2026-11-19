@@ -7,6 +7,7 @@
 //!
 //! 自验证：每关内置参考解，测试里保证"参考解必通关"——期望集合抄错会立刻暴露。
 
+use crate::logging;
 use regex_ir::{used_features, Dialect, Feature, Support};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -344,6 +345,7 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
                 egui::RichText::new(lv.id)
             };
             if ui.selectable_label(st.cur == i, label).clicked() {
+                logging::info(&format!("[闯关] 选关 → {} {}", lv.id, lv.title));
                 st.cur = i;
                 st.input.clear();
                 st.verdict = None;
@@ -390,17 +392,12 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
                 .hint_text("输入后自动检查；多杀/漏杀都过不了"),
         );
         if resp.changed() || ui.button("检查").clicked() {
-            st.verdict = Some(check(lv, &st.input));
-            if let Some((true, _)) = &st.verdict {
-                st.solved[st.cur] = true;
-            }
+            check_and_record(st, lv);
         }
         if ui.small_button("卡住了？看参考解").clicked() {
+            logging::info(&format!("[闯关] 看参考解 level={}", lv.id));
             st.input = lv.solution.to_string();
-            st.verdict = Some(check(lv, &st.input));
-            if let Some((true, _)) = &st.verdict {
-                st.solved[st.cur] = true;
-            }
+            check_and_record(st, lv);
         }
     });
 
@@ -411,11 +408,26 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
             .monospace();
         ui.label(rich);
         if *ok && !is_last && ui.button("下一关 →").clicked() {
+            logging::info(&format!("[闯关] 下一关 {} → {}", lv.id, LEVELS[st.cur + 1].id));
             st.cur += 1;
             st.input.clear();
             st.verdict = None;
         }
     }
+}
+
+/// 检查统一入口：先留痕再改状态——崩溃排查要求每次引擎调用可追溯（触发点：
+/// 输入变化/检查按钮/参考解）。check 本身保持纯函数（测试也直接用它）。
+fn check_and_record(st: &mut State, lv: &Level) {
+    let (ok, why) = check(lv, &st.input);
+    logging::info(&format!("[闯关] check level={} 输入={:?} → {}", lv.id, st.input, if ok { "✓" } else { "✗" }));
+    if !ok {
+        logging::info(&format!("[闯关] 原因：{why}"));
+    }
+    if ok {
+        st.solved[st.cur] = true;
+    }
+    st.verdict = Some((ok, why));
 }
 
 #[cfg(test)]

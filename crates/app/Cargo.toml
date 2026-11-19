@@ -12,13 +12,13 @@ crate-type = ["rlib", "cdylib"]
 
 [[bin]]
 # bin 与 lib 同名会让 trunk 无法区分 wasm 产物（lib 才是 cdylib 入口）
-name = "tools-regex"
+name = "regex"
 path = "src/main.rs"
 
 # 工程纪律：全仓唯一允许依赖 egui 的地方（eframe 壳）
 [dependencies]
-eframe = "0.27"
-egui = "0.27" # 与 eframe 同版本锁步（egui:: 路径直接引用）
+eframe = "0.37"
+egui = "0.37" # 与 eframe 同版本锁步（egui:: 路径直接引用）
 regex-ir = { path = "../regex-ir" }
 regex-parser = { path = "../regex-parser" }
 regex-diagram = { path = "../regex-diagram" }
@@ -26,8 +26,12 @@ regex-exec = { path = "../regex-exec" }
 regex-export = { path = "../regex-export" }
 regex-plain = { path = "../regex-plain" }
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# 只用于 wgpu_options 配置（eframe 0.37 默认渲染后端已是 wgpu）
+egui-wgpu = "0.37"
+
 # 仅 wasm 浏览器形态需要（设计方案 9.4 探索项）
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
-web-sys = { version = "0.3", features = ["console"] }
+web-sys = { version = "0.3", features = ["console", "Window", "Document", "HtmlCanvasElement", "Element"] }

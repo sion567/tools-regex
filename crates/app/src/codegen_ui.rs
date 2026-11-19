@@ -109,7 +109,7 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
                 egui::Frame::default()
                     .fill(Color32::from_rgb(24, 26, 30))
                     .inner_margin(8.0)
-                    .rounding(6.0)
+                    .corner_radius(6.0)
                     .show(ui, |ui| {
                         ui.set_max_width(ui.available_width());
                         ui.monospace(egui::RichText::new(code.clone()).color(FG).monospace());
