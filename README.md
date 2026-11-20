@@ -29,6 +29,8 @@ bash scripts/build_release.sh    # 桌面发布构建（单二进制 target/rele
 bash scripts/build_web.sh        # 浏览器版构建（crates/app/dist/，见下文说明）
 ```
 
+环境要求、wasm/插件构建细节与实测记录：[编译指南.md](./编译指南.md)。
+
 ## 日志与崩溃排查
 
 桌面版日志写在** exe 旁边**的 `regex.log`（写不进则退回 `%TEMP%`），并同步镜像 stderr；

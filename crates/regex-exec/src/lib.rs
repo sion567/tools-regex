@@ -15,6 +15,20 @@ pub mod interp;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod stream;
 
+/// 引擎选择策略：自动级联（默认）或强制指定。
+/// 强制的意义：两个引擎语义不同（regex 线性时间 DFA 家族，fancy-regex 回溯），
+/// 个别写法两边命中集合不一致——强制后"所见即所选引擎"，方便对比差异。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EnginePick {
+    /// 先 `regex`，编译失败再退 `fancy-regex`
+    #[default]
+    Auto,
+    /// 只用 Rust `regex` crate（不支持环视/反向引用，语法不支持就报错，不回退）
+    ForceRegexCrate,
+    /// 只用 `fancy-regex`（回溯语义，支持环视/反向引用）
+    ForceFancyRegex,
+}
+
 /// 实际服务本次匹配的引擎
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Engine {
@@ -69,6 +83,48 @@ impl Scanner {
                     re_fancy: None,
                 },
             },
+        }
+    }
+
+    /// 按指定策略编译（UI 引擎切换用）。[`Scanner::new`] 等价于 `with_pick(Auto, …)`。
+    /// 强制引擎失败就报错——报错里只带被强制引擎的名字，不静默回退。
+    pub fn with_pick(pick: EnginePick, pattern: &str) -> Self {
+        match pick {
+            EnginePick::Auto => Self::new(pattern),
+            EnginePick::ForceRegexCrate => {
+                let effective = strip_js_literal(pattern);
+                match regex::Regex::new(&effective) {
+                    Ok(re) => Self {
+                        engine: Some(Engine::RegexCrate),
+                        error: None,
+                        re_regex: Some(re),
+                        re_fancy: None,
+                    },
+                    Err(e) => Self {
+                        engine: None,
+                        error: Some(format!("[regex] {e}")),
+                        re_regex: None,
+                        re_fancy: None,
+                    },
+                }
+            }
+            EnginePick::ForceFancyRegex => {
+                let effective = strip_js_literal(pattern);
+                match fancy_regex::Regex::new(&effective) {
+                    Ok(re) => Self {
+                        engine: Some(Engine::FancyRegex),
+                        error: None,
+                        re_regex: None,
+                        re_fancy: Some(re),
+                    },
+                    Err(e) => Self {
+                        engine: None,
+                        error: Some(format!("[fancy-regex] {e}")),
+                        re_regex: None,
+                        re_fancy: None,
+                    },
+                }
+            }
         }
     }
 
@@ -268,6 +324,26 @@ mod tests {
         assert!(!sc.ok());
         let err = sc.error().unwrap();
         assert!(err.contains("[regex]") && err.contains("[fancy-regex]"));
+    }
+
+    #[test]
+    fn force_regex_rejects_lookahead_without_fallback() {
+        // 强制 regex：环视不被支持就报错，绝不静默回退到 fancy-regex
+        let sc = Scanner::with_pick(EnginePick::ForceRegexCrate, r"x(?=y)");
+        assert!(sc.engine().is_none());
+        assert!(sc.error().unwrap().starts_with("[regex]"));
+        // 平凡 pattern 下强制 regex 与自动一致
+        let sc2 = Scanner::with_pick(EnginePick::ForceRegexCrate, r"ab+c");
+        assert_eq!(sc2.engine(), Some(Engine::RegexCrate));
+    }
+
+    #[test]
+    fn force_fancy_serves_lookaround() {
+        let sc = Scanner::with_pick(EnginePick::ForceFancyRegex, r"x(?=y)");
+        assert_eq!(sc.engine(), Some(Engine::FancyRegex));
+        assert_eq!(sc.find_in("xy xz xy"), vec![(0, 1), (6, 7)]);
+        let sc2 = Scanner::with_pick(EnginePick::ForceFancyRegex, r"ab+c");
+        assert_eq!(sc2.engine(), Some(Engine::FancyRegex)); // 平凡 pattern 也走 fancy（回溯语义）
     }
 
     #[test]

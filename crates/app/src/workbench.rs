@@ -1,4 +1,4 @@
-//! M2 工作台 —— 三段式渐进面板（设计方案 3.3）：人话层（默认）→ 结构层（铁路图）→ 引擎层（M3）。
+//! M2 工作台 —— 三段式渐进面板（设计方案 3.3）：人话层（默认）→ 结构层（铁路图）→ 引擎层。
 //!
 //! 悬停双向联动（设计 7.5/9 的落地体验）：
 //! - 悬停铁路图节点 → 联动行高亮对应正则片段
@@ -61,7 +61,7 @@ pub enum View {
     Plain,
     /// ② 结构层：铁路图
     Railroad,
-    /// ③ 引擎层：M3 回溯时间轴（教学解释器 + 步迹回放）
+    /// ③ 引擎层：回溯时间轴（教学解释器 + 步迹回放）
     Engine,
 }
 
@@ -110,6 +110,8 @@ pub struct State {
     flag_s: bool,
     flag_m: bool,
     flag_x: bool,
+    /// 引擎选择：自动级联（默认）或强制 regex / fancy-regex（喂给扫描/替换/对比）
+    engine_pick: regex_exec::EnginePick,
 
     // History / 替换预览 / 两正则对比
     history: Vec<HistoryEntry>,
@@ -135,10 +137,10 @@ pub struct State {
     layout_us: u128,
     /// 最近一次解析的 IR（引擎层教学解释器/风险检测输入）
     last_node: Option<regex_ir::Node>,
-    /// 灾难性回溯静态检测结果（M3 danger）
+    /// 灾难性回溯静态检测结果（regex-exec::danger）
     danger: Vec<regex_exec::danger::Risk>,
 
-    // 引擎层（M3）：教学解释器 + 回溯时间轴
+    // 引擎层：教学解释器 + 回溯时间轴
     test_text: String,
     budget_idx: usize,
     interp: Option<Result<regex_exec::interp::InterpResult, String>>,
@@ -178,6 +180,7 @@ impl Default for State {
             flag_s: false,
             flag_m: false,
             flag_x: false,
+            engine_pick: regex_exec::EnginePick::Auto,
             history: Vec::new(),
             repl_on: false,
             repl_template: "[$1]".to_string(),
@@ -234,7 +237,8 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
                 ctx2.fonts_mut(|f| f.layout_job(job))
             };
             let out = egui::TextEdit::multiline(&mut st.regex_src)
-                .desired_rows(2)
+                // 1 行起底（2 行时短正则显得空高）；超宽正则换行后自然撑开，不截内容
+                .desired_rows(1)
                 .desired_width(380.0)
                 .font(FontId::monospace(14.0))
                 .layouter(&mut layouter)
@@ -257,11 +261,44 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
                 }
             }
         });
-        // 方言说明：这里没有"选语言"——匹配固定走 Rust regex 真身 + fancy-regex 近似
+        // 方言说明：匹配默认走 Rust regex 真身，失败退 fancy-regex 近似；引擎可强制指定
         ui.weak(
             "方言 = Rust regex（Rust/Go 家族·线性时间）；含环视/反向引用自动落 fancy-regex（回溯家族·近似）；\
              支持 JS 风格 /pattern/flags（g/i/m/s）",
         );
+        // 引擎切换：默认自动级联；强制指定用于对比两引擎语义差异（命中集合可能不同）
+        ui.horizontal(|ui| {
+            ui.label("引擎：");
+            for (pick, label, tip) in [
+                (
+                    regex_exec::EnginePick::Auto,
+                    "自动",
+                    "regex 优先，编译失败再退 fancy-regex——环视/反向引用自动走近似引擎",
+                ),
+                (
+                    regex_exec::EnginePick::ForceRegexCrate,
+                    "regex 真身",
+                    "只用 Rust regex crate：线性时间；不支持环视/反向引用，语法不支持就报错",
+                ),
+                (
+                    regex_exec::EnginePick::ForceFancyRegex,
+                    "fancy-regex 近似",
+                    "只用 fancy-regex：回溯语义，支持环视/反向引用，但非线性时间",
+                ),
+            ] {
+                if ui
+                    .selectable_label(st.engine_pick == pick, label)
+                    .on_hover_text(tip)
+                    .clicked()
+                {
+                    st.engine_pick = pick;
+                    st.gen += 1;
+                    st.result = None;
+                    st.scan_due = true;
+                    st.last_edit = now;
+                }
+            }
+        });
 
         // RegexBuddy 式标志开关：拼内联标志喂给引擎/替换/对比/解释器
         ui.horizontal(|ui| {
@@ -312,7 +349,7 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
             for (v, label) in [
                 (View::Plain, "① 人话层"),
                 (View::Railroad, "② 结构层 · 铁路图"),
-                (View::Engine, "③ 引擎层 (M3)"),
+                (View::Engine, "③ 引擎层"),
             ] {
                 if ui.selectable_label(st.view == v, label).clicked() {
                     st.view = v;
@@ -571,7 +608,8 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
                         if stale {
                             if let Some(r) = &st.result {
                                 if r.error.is_none() {
-                                    let sc = regex_exec::Scanner::new(&effective_pattern(st));
+                                    let sc =
+                                        regex_exec::Scanner::with_pick(st.engine_pick, &effective_pattern(st));
                                     let outs: Vec<String> = st
                                         .samples
                                         .iter()
@@ -713,8 +751,11 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) {
                             ui.label(format!("命中 {} 处", r.total));
                             ui.weak(format!("{:.1} ms", r.ms));
                         }
-                        (_, Some(_)) => {
-                            ui.label(egui::RichText::new("编译失败（见上方红字）").color(BAD));
+                        (_, Some(e)) => {
+                            // 引擎编译失败（含强制指定时的报错）：首行直出，悬停看完整报错
+                            let first = e.lines().next().unwrap_or("").to_string();
+                            ui.label(egui::RichText::new(format!("✗ 编译失败：{first}")).color(BAD))
+                                .on_hover_text(e.clone());
                         }
                         (None, None) => {
                             ui.weak("无结果");
@@ -930,7 +971,7 @@ fn railroad_view(ui: &mut egui::Ui, st: &mut State) {
     }
 }
 
-// ---- ③ 引擎层（M3）：灾难检测 + 教学解释器 + 回溯时间轴 ----
+// ---- ③ 引擎层：灾难检测 + 教学解释器 + 回溯时间轴 ----
 fn engine_view(ui: &mut egui::Ui, st: &mut State) {
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new("引擎层").strong());
@@ -1218,9 +1259,10 @@ fn spawn_scan(st: &mut State) {
     st.result = None;
     st.galleys.clear();
     st.repl_cache = None;
+    let pick = st.engine_pick;
     let scan = move || -> ScanMsg {
         let t0 = Instant::now();
-        let sc = regex_exec::Scanner::new(&pattern);
+        let sc = regex_exec::Scanner::with_pick(pick, &pattern);
         let engine = sc.engine().map(|e| (e.label(), e.approximate()));
         let error = sc.error().map(str::to_string);
         let mut per_sample = Vec::with_capacity(samples.len());
@@ -1230,9 +1272,9 @@ fn spawn_scan(st: &mut State) {
             total += per_line.iter().map(|m| m.len()).sum::<usize>();
             per_sample.push(per_line);
         }
-        // 对比正则 B：同一样本、同一套标志
+        // 对比正则 B：同一样本、同一套标志、同一引擎策略
         let cmp = if cmp_on {
-            let scb = regex_exec::Scanner::new(&cmp_pattern);
+            let scb = regex_exec::Scanner::with_pick(pick, &cmp_pattern);
             let c_engine = scb.engine().map(|e| (e.label(), e.approximate()));
             let c_error = scb.error().map(str::to_string);
             let mut c_per = Vec::with_capacity(samples.len());

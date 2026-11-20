@@ -74,6 +74,9 @@ impl eframe::App for App {
         egui::Panel::top("top").show(ui, |ui| {
             ui.add_space(4.0);
             ui.horizontal(|ui| {
+                // 未点击过标签时 self.tab 为 None，实际页走 unwrap_or(Workbench)；
+                // 高亮用同一规则——首帧「工作台」就有选中态，与实际渲染页一致
+                let active = self.tab.unwrap_or(Tab::Workbench);
                 for tab in [
                     Tab::Workbench,
                     Tab::Reverse,
@@ -82,7 +85,7 @@ impl eframe::App for App {
                     Tab::Lessons,
                     Tab::Export,
                 ] {
-                    if ui.selectable_label(self.tab == Some(tab), tab.title()).clicked() {
+                    if ui.selectable_label(active == tab, tab.title()).clicked() {
                         logging::info(&format!("[tab] 切换 → {}", tab.title()));
                         self.tab = Some(tab);
                     }

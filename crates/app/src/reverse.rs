@@ -359,36 +359,45 @@ pub fn show(ui: &mut egui::Ui, st: &mut State) -> Option<String> {
         }
     });
 
-    egui::ScrollArea::vertical()
-        .max_height(180.0)
-        .auto_shrink([false, false])
+    // 示例区（上屏）：面板化 + 可拖拽调高（与工作台分栏一致的拖拽交互）。
+    // 旧版 ScrollArea 固定 180px 高且不收缩，几条样例时大半留白——默认收紧到 140，
+    // 拖面板底缘调整；内容超出时面板内滚动
+    egui::Panel::top("rev_examples")
+        .default_size(140.0)
+        .min_size(64.0)
+        .max_size(420.0)
+        .resizable(true)
         .show(ui, |ui| {
-            'ex: for i in 0..st.examples.len() {
-                let mut removed = false;
-                ui.horizontal(|ui| {
-                    ui.monospace(egui::RichText::new(format!("#{:<2}", i + 1)).color(DIM));
-                    if ui
-                        .add_enabled(st.examples.len() > 1, egui::Button::new("✕").small())
-                        .clicked()
-                    {
-                        st.examples.remove(i);
-                        removed = true;
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    'ex: for i in 0..st.examples.len() {
+                        let mut removed = false;
+                        ui.horizontal(|ui| {
+                            ui.monospace(egui::RichText::new(format!("#{:<2}", i + 1)).color(DIM));
+                            if ui
+                                .add_enabled(st.examples.len() > 1, egui::Button::new("✕").small())
+                                .clicked()
+                            {
+                                st.examples.remove(i);
+                                removed = true;
+                            }
+                        });
+                        if removed {
+                            changed = true;
+                            break 'ex;
+                        }
+                        let resp = ui.add(
+                            egui::TextEdit::singleline(&mut st.examples[i])
+                                .desired_width(f32::INFINITY)
+                                .font(FontId::monospace(13.0))
+                                .hint_text("输入一条样例串"),
+                        );
+                        if resp.changed() {
+                            changed = true;
+                        }
                     }
                 });
-                if removed {
-                    changed = true;
-                    break 'ex;
-                }
-                let resp = ui.add(
-                    egui::TextEdit::singleline(&mut st.examples[i])
-                        .desired_width(f32::INFINITY)
-                        .font(FontId::monospace(13.0))
-                        .hint_text("输入一条样例串"),
-                );
-                if resp.changed() {
-                    changed = true;
-                }
-            }
         });
     if changed {
         // 样例变了：旧建议与自测已过期
